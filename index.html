@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SimpleShare - Easy File Sharing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .tagline {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .upload-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .upload-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            background-color: #3498db;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-icon svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+        }
+
+        .file-input-container {
+            position: relative;
+            margin: 1.5rem 0;
+        }
+
+        .file-input {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .file-input-label:hover {
+            background-color: #2980b9;
+        }
+
+        .selected-file {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .upload-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+            display: none;
+        }
+
+        .upload-btn:hover {
+            background-color: #27ae60;
+        }
+
+        .upload-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .result-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            display: none;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            background-color: #2ecc71;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+        }
+
+        .link-container {
+            margin: 1.5rem 0;
+            padding: 0.8rem;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+            margin-right: 0.5rem;
+        }
+
+        .copy-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .new-upload-btn {
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+
+        .new-upload-btn:hover {
+            background-color: #7f8c8d;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #3498db;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        .error-container {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin-bottom: 2rem;
+            display: none;
+            border-left: 5px solid #e74c3c;
+        }
+
+        .error-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            background-color: #e74c3c;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .error-icon svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            margin-bottom: 1.5rem;
+        }
+
+        .retry-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+
+        .retry-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .expires-info {
+            margin-top: 1rem;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            color: #95a5a6;
+            font-size: 0.9rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .upload-container, .result-container, .error-container {
+                padding: 1.5rem;
+            }
+            
+            .file-input-label, .upload-btn, .copy-btn, .new-upload-btn, .retry-btn {
+                padding: 0.7rem 1.2rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SimpleShare</h1>
+            <p class="tagline">Share files quickly and securely</p>
+        </header>
+
+        <div class="upload-container" id="uploadContainer">
+            <div class="upload-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+                </svg>
+            </div>
+            <h2>Upload Your File</h2>
+            <p>Select a file to share. Your file will expire after 7 days.</p>
+            
+            <div class="file-input-container">
+                <label class="file-input-label">Choose File</label>
+                <input type="file" class="file-input" id="fileInput">
+            </div>
+            
+            <div class="selected-file" id="selectedFile">No file selected</div>
+            
+            <button class="upload-btn" id="uploadBtn" disabled>Upload File</button>
+        </div>
+
+        <div class="loading" id="loadingContainer">
+            <div class="spinner"></div>
+            <p>Uploading your file...</p>
+        </div>
+
+        <div class="error-container" id="errorContainer">
+            <div class="error-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+            </div>
+            <h2>Upload Failed</h2>
+            <p class="error-message" id="errorMessage">Something went wrong. Please try again.</p>
+            <button class="retry-btn" id="retryBtn">Try Again</button>
+        </div>
+
+        <div class="result-container" id="resultContainer">
+            <div class="success-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+            </div>
+            <h2>File Uploaded Successfully!</h2>
+            <p>Share this link with anyone you want to access your file.</p>
+            
+            <div class="link-container" id="fileLink"></div>
+            
+            <div>
+                <button class="copy-btn" id="copyBtn">Copy Link</button>
+                <button class="new-upload-btn" id="newUploadBtn">New Upload</button>
+            </div>
+            
+            <p class="expires-info">This link will expire in 7 days.</p>
+        </div>
+
+        <footer>
+            <p>© 2025 SimpleShare. File hosting powered by file.io</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const fileInput = document.getElementById('fileInput');
+            const selectedFileText = document.getElementById('selectedFile');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const uploadContainer = document.getElementById('uploadContainer');
+            const loadingContainer = document.getElementById('loadingContainer');
+            const resultContainer = document.getElementById('resultContainer');
+            const errorContainer = document.getElementById('errorContainer');
+            const fileLink = document.getElementById('fileLink');
+            const copyBtn = document.getElementById('copyBtn');
+            const newUploadBtn = document.getElementById('newUploadBtn');
+            const retryBtn = document.getElementById('retryBtn');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Event listeners
+            fileInput.addEventListener('change', handleFileSelect);
+            uploadBtn.addEventListener('click', uploadFile);
+            copyBtn.addEventListener('click', copyLinkToClipboard);
+            newUploadBtn.addEventListener('click', resetUpload);
+            retryBtn.addEventListener('click', resetUpload);
+            
+            // Functions
+            function handleFileSelect(e) {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    selectedFileText.textContent = `Selected: ${file.name} (${formatFileSize(file.size)})`;
+                    uploadBtn.disabled = false;
+                    uploadBtn.style.display = 'inline-block';
+                } else {
+                    selectedFileText.textContent = 'No file selected';
+                    uploadBtn.disabled = true;
+                    uploadBtn.style.display = 'none';
+                }
+            }
+            
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            
+            function uploadFile() {
+                if (fileInput.files.length === 0) return;
+                
+                const file = fileInput.files[0];
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                // Show loading state
+                uploadContainer.style.display = 'none';
+                errorContainer.style.display = 'none';
+                loadingContainer.style.display = 'block';
+                
+                // Make API request
+                fetch('https://file.io/?expires=1w', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Show success state
+                        loadingContainer.style.display = 'none';
+                        resultContainer.style.display = 'block';
+                        fileLink.textContent = data.link;
+                    } else {
+                        throw new Error('Upload failed');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Show error state
+                    loadingContainer.style.display = 'none';
+                    errorContainer.style.display = 'block';
+                    errorMessage.textContent = 'An error occurred while uploading. Please try again.';
+                });
+            }
+            
+            function copyLinkToClipboard() {
+                const link = fileLink.textContent;
+                navigator.clipboard.writeText(link)
+                    .then(() => {
+                        // Change button text temporarily
+                        const originalText = copyBtn.textContent;
+                        copyBtn.textContent = 'Copied!';
+                        setTimeout(() => {
+                            copyBtn.textContent = originalText;
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy: ', err);
+                    });
+            }
+            
+            function resetUpload() {
+                // Reset form and UI
+                fileInput.value = '';
+                selectedFileText.textContent = 'No file selected';
+                uploadBtn.disabled = true;
+                uploadBtn.style.display = 'none';
+                
+                // Show upload container, hide other containers
+                resultContainer.style.display = 'none';
+                errorContainer.style.display = 'none';
+                loadingContainer.style.display = 'none';
+                uploadContainer.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
