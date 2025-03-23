@@ -351,6 +351,10 @@
 
         <footer>
             <p>© 2025 SimpleShare. File hosting powered by file.io</p>
+            <p style="margin-top: 10px; font-size: 0.8rem;">
+                <a href="#" id="showDebugBtn" style="color: #95a5a6; text-decoration: underline;">Show Debug Info</a>
+                <div id="debugInfo" style="display: none; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; text-align: left; overflow: auto; max-height: 200px;"></div>
+            </p>
         </footer>
     </div>
 
@@ -369,6 +373,25 @@
             const newUploadBtn = document.getElementById('newUploadBtn');
             const retryBtn = document.getElementById('retryBtn');
             const errorMessage = document.getElementById('errorMessage');
+            const showDebugBtn = document.getElementById('showDebugBtn');
+            const debugInfo = document.getElementById('debugInfo');
+            
+            // Debug log array
+            const debugLogs = [];
+            
+            // Override console methods to capture logs
+            const originalConsoleLog = console.log;
+            const originalConsoleError = console.error;
+            
+            console.log = function() {
+                debugLogs.push({type: 'log', time: new Date().toISOString(), args: Array.from(arguments)});
+                originalConsoleLog.apply(console, arguments);
+            };
+            
+            console.error = function() {
+                debugLogs.push({type: 'error', time: new Date().toISOString(), args: Array.from(arguments)});
+                originalConsoleError.apply(console, arguments);
+            };
             
             // Event listeners
             fileInput.addEventListener('change', handleFileSelect);
@@ -376,6 +399,7 @@
             copyBtn.addEventListener('click', copyLinkToClipboard);
             newUploadBtn.addEventListener('click', resetUpload);
             retryBtn.addEventListener('click', resetUpload);
+            showDebugBtn.addEventListener('click', toggleDebugInfo);
             
             // Functions
             function handleFileSelect(e) {
@@ -413,34 +437,77 @@
                 errorContainer.style.display = 'none';
                 loadingContainer.style.display = 'block';
                 
-                // Make API request
-                fetch('https://file.io/?expires=1w', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        // Show success state
-                        loadingContainer.style.display = 'none';
-                        resultContainer.style.display = 'block';
-                        fileLink.textContent = data.link;
+                console.log('Starting file upload to file.io', { fileName: file.name, fileSize: file.size });
+                
+                // Try alternative approach using XMLHttpRequest
+                // This often works better for file uploads with CORS issues
+                const xhr = new XMLHttpRequest();
+                
+                xhr.open('POST', 'https://file.io/?expires=1w', true);
+                xhr.setRequestHeader('Accept', 'application/json');
+                
+                xhr.onload = function() {
+                    console.log('XHR status:', xhr.status);
+                    console.log('XHR response:', xhr.responseText);
+                    
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            console.log('Upload response data:', data);
+                            
+                            if (data.success) {
+                                // Show success state
+                                loadingContainer.style.display = 'none';
+                                resultContainer.style.display = 'block';
+                                fileLink.textContent = data.link;
+                            } else {
+                                throw new Error('Upload failed: ' + (data.message || 'Unknown error'));
+                            }
+                        } catch (e) {
+                            console.error('Error parsing JSON response:', e);
+                            loadingContainer.style.display = 'none';
+                            errorContainer.style.display = 'block';
+                            errorMessage.textContent = 'Error parsing server response: ' + e.message;
+                        }
                     } else {
-                        throw new Error('Upload failed');
+                        console.error('XHR error response:', xhr.responseText);
+                        loadingContainer.style.display = 'none';
+                        errorContainer.style.display = 'block';
+                        errorMessage.textContent = `Upload failed with status ${xhr.status}`;
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    // Show error state
+                };
+                
+                xhr.onerror = function() {
+                    console.error('XHR network error');
                     loadingContainer.style.display = 'none';
                     errorContainer.style.display = 'block';
-                    errorMessage.textContent = 'An error occurred while uploading. Please try again.';
-                });
+                    errorMessage.textContent = 'Network error occurred. The API might be blocking cross-origin requests.';
+                    
+                    // Offer solution for API CORS issues
+                    errorMessage.innerHTML += '<br><br>Possible solutions:<br>1. Try using a CORS proxy<br>2. Host this page on a server with proper CORS configuration<br>3. Try a different file sharing API';
+                };
+                
+                // Add progress tracking
+                xhr.upload.onprogress = function(e) {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        console.log(`Upload progress: ${percentComplete.toFixed(2)}%`);
+                    }
+                };
+                
+                console.log('Sending file via XMLHttpRequest');
+                xhr.send(formData);
+                
+                // Fallback to fetch API as alternative if needed
+                /* 
+                fetch('https://file.io/?expires=1w', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                */
             }
             
             function copyLinkToClipboard() {
@@ -471,6 +538,43 @@
                 errorContainer.style.display = 'none';
                 loadingContainer.style.display = 'none';
                 uploadContainer.style.display = 'block';
+            }
+            
+            function toggleDebugInfo(e) {
+                e.preventDefault();
+                
+                if (debugInfo.style.display === 'none') {
+                    // Format and display debug logs
+                    let debugHTML = '<h4>Debug Logs:</h4>';
+                    debugLogs.forEach(log => {
+                        const color = log.type === 'error' ? '#e74c3c' : '#2c3e50';
+                        const args = log.args.map(arg => {
+                            if (typeof arg === 'object') {
+                                return JSON.stringify(arg, null, 2);
+                            }
+                            return arg;
+                        }).join(', ');
+                        
+                        debugHTML += `<div style="color: ${color}; margin-bottom: 5px; font-family: monospace;">
+                            <span style="color: #7f8c8d; margin-right: 10px;">[${log.time.split('T')[1].split('.')[0]}]</span>
+                            ${args}
+                        </div>`;
+                    });
+                    
+                    // Add browser information
+                    debugHTML += `<h4>Browser Info:</h4>
+                        <div style="font-family: monospace;">
+                            <div>User Agent: ${navigator.userAgent}</div>
+                            <div>Platform: ${navigator.platform}</div>
+                        </div>`;
+                    
+                    debugInfo.innerHTML = debugHTML;
+                    debugInfo.style.display = 'block';
+                    showDebugBtn.textContent = 'Hide Debug Info';
+                } else {
+                    debugInfo.style.display = 'none';
+                    showDebugBtn.textContent = 'Show Debug Info';
+                }
             }
         });
     </script>
